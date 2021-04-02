@@ -3,6 +3,7 @@ from airflow.operators.bash import BashOperator
 from datetime import datetime
 from airflow.operators.subdag import SubDagOperator
 from subdags.subdag_parallel_dag import subdag_parallel_dag
+from airflow.utils.task_group import TaskGroup
 
 
 default_args = {
@@ -23,10 +24,17 @@ with DAG('parallel_dag', schedule_interval = '@daily',
         task_id = 'task1',
         bash_command = 'sleep 2'
     )
-    processing = SubDagOperator(
-        task_id='processing_tasks',
-        subdag=subdag_parallel_dag('parallel_dag', 'processing_tasks',default_args)
-    )
+
+    with TaskGroup('processing_tasks') as processing_tasks:
+        task2 = BashOperator(
+            task_id = 'task2',
+            bash_command = 'sleep 3'
+        )
+
+        task3= BashOperator(
+            task_id = 'task3',
+            bash_command = 'sleep 3'
+        )        
 
 
     task4 = BashOperator(
@@ -34,4 +42,4 @@ with DAG('parallel_dag', schedule_interval = '@daily',
         bash_command = 'sleep 2'
     )
 
-    task1>>processing>> task4
+    task1>>processing_tasks>> task4
